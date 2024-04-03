@@ -301,7 +301,7 @@ if __name__ == '__main__':
     # new_uuid = uuid.uuid4()
     # uuid_str = str(new_uuid)
     # print(uuid_str)
-    app.run(debug=True, port=8000)
+    app.run(debug=True, host="0.0.0.0", port=8000)
 
 
 
