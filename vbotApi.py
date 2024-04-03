@@ -57,6 +57,7 @@ def create_user():
     name = data['name']
     email = data['email']
     number = data['number']
+    number = number[-10:]
     city = data['city']
     address = data['address']
     serviceId = data['serviceId']
@@ -82,6 +83,8 @@ def get_user(id):
 @app.route('/customer/update', methods=['PUT'])
 def update_user():
     number = request.args.get('number')
+    number = number[-10:]
+    print(number)
     callSessionId = request.args.get('callSessionId')
     customer = Customer.query.filter_by(number=number).first()
     # jiraTest = copy.deepcopy(jiraDTO.jiraSample)
