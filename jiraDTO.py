@@ -16,7 +16,7 @@ jiraSample = {
                     "content": [
                         {
                             "type": "text",
-                            "text": "description added from postman"
+                            "text": "description added from postmann"
                         }
                     ]
                 }
