@@ -146,7 +146,7 @@ def create_freshdeks():
     if customer:
         customer.callSessionId = callSessionId
         db.session.commit()
-        addAttachmentToTicket()
+        # addAttachmentToTicket()
         return jsonify({'message': 'ticket created successfully'})
 
 
