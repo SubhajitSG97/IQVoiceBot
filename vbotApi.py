@@ -83,6 +83,8 @@ def update_user():
     customer = Customer.query.filter_by(number=number).first()
     jiraTest = copy.deepcopy(jiraDTO.jiraSample)
     createJira(jiraTest, "Kolkata","Broadband","9811590799")
+    freshdeskTicket = copy.deepcopy(jiraDTO.freshdeskSample)
+    createFreshdesk(freshdeskTicket,"Kolkata","Broadband","9811590799")
     if customer:
         customer.callSessionId = callSessionId
         db.session.commit()
@@ -178,6 +180,37 @@ def get_ticket(id):
         return jsonify({'id': ticket.id, 'description': ticket.description, 'issueType': ticket.issueType})
     else:
         return jsonify({'message': 'Ticket not found'}), 404
+
+
+def createFreshdesk(new_jira_ticket, address, issueType, number):
+    freshdeskTicket = copy.deepcopy(jiraDTO.freshdeskSample)
+    freshdeskTicket['description'] = "Broadband Address: " + address
+    freshdeskTicket['subject'] = "Location Change for Customer: " + number
+
+    url = "https://airtel7690.freshdesk.com/api/v2/tickets"
+
+    token = 'ZlRDVll1UmQ3TXl4UlF4RUpSNTpY'
+    headers = {
+        'Authorization': 'Basic ' + token,
+        'Content-Type': 'application/json'  # Adjust content type as necessary
+    }
+    print(freshdeskTicket)
+    json_data = json.dumps(freshdeskTicket)
+    print(json_data)
+    # Sending a GET request to the API endpoint
+    response = requests.post(url, data=json_data, headers=headers)
+
+    # Checking if the request was successful (status code 200)
+    if response.status_code == 201:
+        # Parsing the JSON response
+        data = response.json()
+
+        print(data['key'])
+    else:
+        # Print an error message if the request was unsuccessful
+        print("Error:", response.status_code)
+
+
 
 
 with app.app_context():
