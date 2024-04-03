@@ -17,7 +17,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://voicebot:voicebot@34.131.18.87:5432/voicebot'
 db = SQLAlchemy(app)
 
-
+#try
 class Customer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False)
