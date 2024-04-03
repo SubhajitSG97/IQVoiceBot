@@ -40,15 +40,5 @@ jiraSample = {
         "712020:7b50644d-d0eb-4e69-9716-284bc9de20c6"
     ]
 }
-freshdeskSample = {
-    "description": "Details about the issue...",
-    "subject": "Support Needed...",
-    "email": "tom@outerspace.com",
-    "priority": 1,
-    "status": 2,
-    "cc_emails": [
-        "subhajit.ghosh@airtel.com"
-    ]
-}
 
 jiraSample['fields']['description']['content'][0]['content'][0]['text'] = "Broadband location change"
