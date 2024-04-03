@@ -7,6 +7,7 @@ import requests
 
 import jiraDTO
 import freshDeskDTO
+import sendSMSDTO
 import transcription
 
 from flask import Flask, request, jsonify
@@ -306,6 +307,34 @@ def addAttachmentToTicket():
 
 with app.app_context():
     db.create_all()
+
+def sendSms():
+    sendSMSTicket = copy.deepcopy(sendSMSDTO.sendSMSSample)
+    sendSMSTicket['message'] = "Use 1234 as OTP to login into Airtel TV."
+    sendSMSTicket['destinationAddress'][0] = "8017127577"
+    url = "https://openapi.airtel.in/gateway/airtel-iq/iq-sms-utility/v1/sendSms"
+    token = 'aXJvbm1hbjpJcm9uIzIwMjA='
+    headers = {
+        'Authorization': 'Basic ' + token,
+        'Content-Type': 'application/json'  # Adjust content type as necessary
+    }
+    print(sendSMSTicket)
+    json_data = json.dumps(sendSMSTicket)
+    print(json_data)
+    # Sending a GET request to the API endpoint
+    response = requests.post(url, data=json_data, headers=headers)
+
+    # Checking if the request was successful (status code 200)
+    if response.status_code == 200:
+        # Parsing the JSON response
+        data = response.json()
+
+        print(data['entityId'])
+    else:
+        # Print an error message if the request was unsuccessful
+        print("Error:", response.status_code)
+
+
 
 if __name__ == '__main__':
     # print(jiraDTO.jiraSample)
