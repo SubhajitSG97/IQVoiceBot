@@ -152,7 +152,7 @@ def get_customer_by_callSessionId():
     callSessionId = request.args.get('callSessionId')
     customer = Customer.query.filter_by(callSessionId=callSessionId).first()
     if customer:
-        return jsonify({"id":customer.id,"name":customer.name, "email":customer.number, "plan":customer.plan, "serviceType":customer.serviceType, "serviceId":customer.serviceId, "callSessionId":customer.callSessionId, "city":customer.city, "address":customer.address, "pincode":customer.pincode, "dues":customer.dues})
+        return jsonify({"id":customer.id,"name":customer.name, "number":customer.number, "email":customer.email, "plan":customer.plan, "serviceType":customer.serviceType, "serviceId":customer.serviceId, "callSessionId":customer.callSessionId, "city":customer.city, "address":customer.address, "pincode":customer.pincode, "dues":customer.dues})
     else:
         return jsonify({'message': 'customer not found'}), 404
 
