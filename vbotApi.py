@@ -12,7 +12,7 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost:5431/voicebot'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://voicebot:voicebot@localhost:5432/voicebot'
 db = SQLAlchemy(app)
 
 
@@ -136,7 +136,7 @@ def create_freshdeks():
     db.session.add(new_ticket)
     db.session.commit()
     freshdeskTicket = copy.deepcopy(freshDeskDTO.freshdeskSample)
-    ticketId = createFreshdesk(freshdeskTicket, address, pincode, customer.number)
+    ticketId = createFreshdesk(freshdeskTicket, address, pincode, customer)
     new_ticket.jiraId = ticketId
     db.session.commit()
     # sms && update jiraTicket on JiraDetails
@@ -237,10 +237,11 @@ def get_ticket(id):
         return jsonify({'message': 'Ticket not found'}), 404
 
 
-def createFreshdesk(new_jira_ticket, address, issueType, number):
+def createFreshdesk(new_jira_ticket, address, pincode, customer):
     freshdeskTicket = copy.deepcopy(freshDeskDTO.freshdeskSample)
     freshdeskTicket['description'] = "Broadband Address: " + address
-    freshdeskTicket['subject'] = "Location Change for Customer: " + number
+    freshdeskTicket['subject'] = "Location Change for Customer: " + customer.number
+    freshdeskTicket['email'] = customer.email
 
     url = "https://airtel7690.freshdesk.com/api/v2/tickets"
 
