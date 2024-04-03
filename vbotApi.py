@@ -7,6 +7,7 @@ import requests
 
 import jiraDTO
 import freshDeskDTO
+import transcription
 
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -244,6 +245,18 @@ def get_ticket(id):
         return jsonify({'message': 'Ticket not found'}), 404
 
 
+@app.route('/freshdesk/attach/transcription', methods=['POST'])
+def attach_transcription():
+    data = request.get_json()
+    transcription.create_transcription_pdf(data)
+    addAttachmentToTicket()
+    if transcription:
+        return jsonify({'message': 'transcription attached successfully'})
+    else:
+        return jsonify({'message': 'something went wrong'}), 500
+
+
+
 def createFreshdesk(new_jira_ticket, address, pincode, customer):
     freshdeskTicket = copy.deepcopy(freshDeskDTO.freshdeskSample)
     freshdeskTicket['description'] = "Broadband Address: " + address
@@ -273,46 +286,20 @@ def createFreshdesk(new_jira_ticket, address, pincode, customer):
         # Print an error message if the request was unsuccessful
         print("Error:", response.status_code)
 
-# def updateFreshdesk(new_jira_ticket):
-#     freshdeskTicket = copy.deepcopy(freshDeskDTO.freshdeskSample)
-#     freshdeskTicket['description'] = "Broadband Address: " + address
-#     freshdeskTicket['subject'] = "Location Change for Customer: " + number
-#
-#     url = "https://airtel7690.freshdesk.com/api/v2/tickets"
-#
-#     token = 'ZlRDVll1UmQ3TXl4UlF4RUpSNTpY'
-#     headers = {
-#         'Authorization': 'Basic ' + token,
-#         'Content-Type': 'application/json'  # Adjust content type as necessary
-#     }
-#     json_data = json.dumps(freshdeskTicket)
-#     print(json_data)
-#     # Sending a GET request to the API endpoint
-#     response = requests.post(url, data=json_data, headers=headers)
-#
-#     # Checking if the request was successful (status code 200)
-#     if response.status_code == 201:
-#         # Parsing the JSON response
-#         data = response.json()
-#
-#         print(data)
-#     else:
-#         # Print an error message if the request was unsuccessful
-#         print("Error:", response.status_code)
-
 
 def addAttachmentToTicket():
-    url = "https://airtel7690.freshdesk.com/api/v2/tickets/6"
+    url = "https://airtel7690.freshdesk.com/api/v2/tickets/11"
     token = 'ZlRDVll1UmQ3TXl4UlF4RUpSNTpY'
     headers = {
         'Authorization': 'Basic ' + token,
         'Content-Type': 'application/json'  # Adjust content type as necessary
     }
+    data = {}
     multipart_data = [
-        ('attachments[]', ('6.txt', open('/tmp/6.txt', 'rb'), 'text/plain')),
+        ('attachments[]', ('transcript.pdf', open('/Users/B0274659/hackathon-voicebot/chat_transcript.pdf', 'rb'), 'application/pdf')),
     ]
-    response = requests.put(url, headers=headers, files=multipart_data)
-
+    response = requests.put(url, headers=headers, files=multipart_data, data=data)
+    print(response.content)
 
 with app.app_context():
     db.create_all()
