@@ -42,4 +42,3 @@ jiraSample = {
 }
 
 jiraSample['fields']['description']['content'][0]['content'][0]['text'] = "Broadband location change"
-

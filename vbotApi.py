@@ -6,12 +6,13 @@ import uuid
 import requests
 
 import jiraDTO
+import freshDeskDTO
 
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost:5431/voicebot'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://voicebot:voicebot@34.131.18.87:5432/voicebot'
 db = SQLAlchemy(app)
 
 
@@ -61,8 +62,9 @@ def create_user():
     serviceType = data['serviceType']
     plan = data['plan']
     pincode = data['pincode']
+    dues = data['dues']
     new_customer = Customer(name=name, email=email, number=number, city=city, address=address, serviceId=serviceId,
-                            serviceType=serviceType, plan=plan, pincode=pincode)
+                            serviceType=serviceType, plan=plan, pincode=pincode, dues=dues)
     db.session.add(new_customer)
     db.session.commit()
     return jsonify({'message': 'Customer created successfully'}, ), 201
@@ -81,8 +83,10 @@ def update_user():
     number = request.args.get('number')
     callSessionId = request.args.get('callSessionId')
     customer = Customer.query.filter_by(number=number).first()
-    jiraTest = copy.deepcopy(jiraDTO.jiraSample)
-    createJira(jiraTest, "Kolkata","Broadband","9811590799")
+    # jiraTest = copy.deepcopy(jiraDTO.jiraSample)
+    # createJira(jiraTest, "Kolkata","Broadband","9811590799")
+    # freshdeskTicket = copy.deepcopy(freshDeskDTO.freshdeskSample)
+    # createFreshdesk(freshdeskTicket,"Kolkata","Broadband","9811590799")
     if customer:
         customer.callSessionId = callSessionId
         db.session.commit()
@@ -90,12 +94,69 @@ def update_user():
     else:
         return jsonify({'message': 'customer not found'}), 404
 
+@app.route('/customer/update/all', methods=['PUT'])
+def update_details_customer():
+    data = request.get_json()
+    name = data['name']
+    email = data['email']
+    number = data['number']
+    city = data['city']
+    address = data['address']
+    serviceId = data['serviceId']
+    serviceType = data['serviceType']
+    plan = data['plan']
+    pincode = data['pincode']
+    dues = data['dues']
+
+    customer = Customer.query.filter_by(number=number).first()
+    if customer:
+        customer.name = name
+        customer.email = email
+        customer.city = city
+        customer.address = address
+        customer.serviceId = serviceId
+        customer.serviceType = serviceType
+        customer.plan = plan
+        customer.pincode = pincode
+        customer.dues = dues
+        db.session.commit()
+        return jsonify({'message': 'customer updated successfully'})
+    else:
+        return jsonify({'message': 'customer not found'}), 404
+
+@app.route('/freshdesk/create', methods=['POST'])
+def create_freshdeks():
+    callSessionId = request.args.get('callSessionId')
+    data = request.get_json()
+    address = data['address']
+    pincode = data['pincode']
+    customer = Customer.query.filter_by(callSessionId=callSessionId).first()
+    if customer:
+        description = address + " " + pincode
+        new_ticket = JiraDetails(customerId=customer.id, description=description, issueType="Request")
+        db.session.add(new_ticket)
+        db.session.commit()
+        freshdeskTicket = copy.deepcopy(freshDeskDTO.freshdeskSample)
+        ticketId = createFreshdesk(freshdeskTicket, address, pincode, customer)
+        new_ticket.jiraId = ticketId
+        db.session.commit()
+    else:
+        return jsonify({'message': 'customer not found'}), 404
+    # sms && update jiraTicket on JiraDetails
+    if customer:
+        customer.callSessionId = callSessionId
+        db.session.commit()
+        # addAttachmentToTicket()
+        return jsonify({'message': 'ticket created successfully'})
+
+
+
 @app.route('/customer/get', methods=['GET'])
 def get_customer_by_callSessionId():
     callSessionId = request.args.get('callSessionId')
     customer = Customer.query.filter_by(callSessionId=callSessionId).first()
     if customer:
-        return jsonify({"id":customer.id,"name":customer.name, "email":customer.number, "plan":customer.plan, "serviceType":customer.serviceType, "serviceId":customer.serviceId, "callSessionId":customer.callSessionId, "city":customer.city, "address":customer.address, "pincode":customer.pincode, "dues":customer.dues})
+        return jsonify({"id":customer.id,"name":customer.name, "number":customer.number, "email":customer.email, "plan":customer.plan, "serviceType":customer.serviceType, "serviceId":customer.serviceId, "callSessionId":customer.callSessionId, "city":customer.city, "address":customer.address, "pincode":customer.pincode, "dues":customer.dues})
     else:
         return jsonify({'message': 'customer not found'}), 404
 
@@ -105,8 +166,12 @@ def get_payment_details():
     customer = Customer.query.filter_by(callSessionId=callSessionId).first()
     if customer:
         payments = Payment.query.filter_by(customerId=customer.id)
-        return jsonify({"customerDetails":{"id":customer.id,"name":customer.name, "email":customer.number, "plan":customer.plan, "serviceType":customer.serviceType, "serviceId":customer.serviceId, "callSessionId":customer.callSessionId, "city":customer.city, "address":customer.address, "pincode":customer.pincode, "dues":customer.dues},
-                        "payments":payments})
+        return jsonify({"customerDetails": {"id": customer.id, "name": customer.name, "email": customer.number,
+                                            "plan": customer.plan, "serviceType": customer.serviceType,
+                                            "serviceId": customer.serviceId, "callSessionId": customer.callSessionId,
+                                            "city": customer.city, "address": customer.address,
+                                            "pincode": customer.pincode, "dues": customer.dues},
+                        "payments": payments})
     else:
         return jsonify({'message': 'customer not found'}), 404
 
@@ -116,7 +181,6 @@ def create_payment():
     customerId = data['customerId']
     amount = data['amount']
     date = datetime.datetime.now()
-
 
     newPayment = Payment(customerId=customerId, amount=amount, date=date)
     db.session.add(newPayment)
@@ -180,6 +244,76 @@ def get_ticket(id):
         return jsonify({'message': 'Ticket not found'}), 404
 
 
+def createFreshdesk(new_jira_ticket, address, pincode, customer):
+    freshdeskTicket = copy.deepcopy(freshDeskDTO.freshdeskSample)
+    freshdeskTicket['description'] = "Broadband Address: " + address
+    freshdeskTicket['subject'] = "Location Change for Customer: " + customer.number
+    freshdeskTicket['email'] = customer.email
+
+    url = "https://airtel7690.freshdesk.com/api/v2/tickets"
+
+    token = 'ZlRDVll1UmQ3TXl4UlF4RUpSNTpY'
+    headers = {
+        'Authorization': 'Basic ' + token,
+        'Content-Type': 'application/json'  # Adjust content type as necessary
+    }
+    json_data = json.dumps(freshdeskTicket)
+    print(json_data)
+    # Sending a GET request to the API endpoint
+    response = requests.post(url, data=json_data, headers=headers)
+
+    # Checking if the request was successful (status code 200)
+    if response.status_code == 201:
+        # Parsing the JSON response
+        data = response.json()
+
+        print(data['id'])
+        return data['id']
+    else:
+        # Print an error message if the request was unsuccessful
+        print("Error:", response.status_code)
+
+# def updateFreshdesk(new_jira_ticket):
+#     freshdeskTicket = copy.deepcopy(freshDeskDTO.freshdeskSample)
+#     freshdeskTicket['description'] = "Broadband Address: " + address
+#     freshdeskTicket['subject'] = "Location Change for Customer: " + number
+#
+#     url = "https://airtel7690.freshdesk.com/api/v2/tickets"
+#
+#     token = 'ZlRDVll1UmQ3TXl4UlF4RUpSNTpY'
+#     headers = {
+#         'Authorization': 'Basic ' + token,
+#         'Content-Type': 'application/json'  # Adjust content type as necessary
+#     }
+#     json_data = json.dumps(freshdeskTicket)
+#     print(json_data)
+#     # Sending a GET request to the API endpoint
+#     response = requests.post(url, data=json_data, headers=headers)
+#
+#     # Checking if the request was successful (status code 200)
+#     if response.status_code == 201:
+#         # Parsing the JSON response
+#         data = response.json()
+#
+#         print(data)
+#     else:
+#         # Print an error message if the request was unsuccessful
+#         print("Error:", response.status_code)
+
+
+def addAttachmentToTicket():
+    url = "https://airtel7690.freshdesk.com/api/v2/tickets/6"
+    token = 'ZlRDVll1UmQ3TXl4UlF4RUpSNTpY'
+    headers = {
+        'Authorization': 'Basic ' + token,
+        'Content-Type': 'application/json'  # Adjust content type as necessary
+    }
+    multipart_data = [
+        ('attachments[]', ('6.txt', open('/tmp/6.txt', 'rb'), 'text/plain')),
+    ]
+    response = requests.put(url, headers=headers, files=multipart_data)
+
+
 with app.app_context():
     db.create_all()
 
@@ -188,7 +322,7 @@ if __name__ == '__main__':
     # new_uuid = uuid.uuid4()
     # uuid_str = str(new_uuid)
     # print(uuid_str)
-    app.run(debug=True, port=8000)
+    app.run(debug=True, host="0.0.0.0", port=8000)
 
 
 
