@@ -42,12 +42,12 @@ class JiraDetails(db.Model):
     transcription = db.Column(db.Text)
     recordingURL = db.Column(db.Text)
 
+
 class Payment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     customerId = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
     amount = db.Column(db.Integer, nullable=True)
     date = db.Column(db.DateTime, default=datetime.datetime.now())
-
 
 
 @app.route('/customer/create', methods=['POST'])
@@ -78,6 +78,7 @@ def get_user(id):
     else:
         return jsonify({'message': 'User not found'}), 404
 
+
 @app.route('/customer/update', methods=['PUT'])
 def update_user():
     number = request.args.get('number')
@@ -93,6 +94,7 @@ def update_user():
         return jsonify({'message': 'customer updated successfully'})
     else:
         return jsonify({'message': 'customer not found'}), 404
+
 
 @app.route('/customer/update/all', methods=['PUT'])
 def update_details_customer():
@@ -124,6 +126,7 @@ def update_details_customer():
     else:
         return jsonify({'message': 'customer not found'}), 404
 
+
 @app.route('/freshdesk/create', methods=['POST'])
 def create_freshdeks():
     callSessionId = request.args.get('callSessionId')
@@ -143,8 +146,8 @@ def create_freshdeks():
     if customer:
         customer.callSessionId = callSessionId
         db.session.commit()
+        addAttachmentToTicket()
         return jsonify({'message': 'ticket created successfully'})
-
 
 
 @app.route('/customer/get', methods=['GET'])
@@ -156,16 +159,22 @@ def get_customer_by_callSessionId():
     else:
         return jsonify({'message': 'customer not found'}), 404
 
+
 @app.route('/customer/payment-details', methods=['GET'])
 def get_payment_details():
     callSessionId = request.args.get('callSessionId')
     customer = Customer.query.filter_by(callSessionId=callSessionId).first()
     if customer:
         payments = Payment.query.filter_by(customerId=customer.id)
-        return jsonify({"customerDetails":{"id":customer.id,"name":customer.name, "email":customer.number, "plan":customer.plan, "serviceType":customer.serviceType, "serviceId":customer.serviceId, "callSessionId":customer.callSessionId, "city":customer.city, "address":customer.address, "pincode":customer.pincode, "dues":customer.dues},
-                        "payments":payments})
+        return jsonify({"customerDetails": {"id": customer.id, "name": customer.name, "email": customer.number,
+                                            "plan": customer.plan, "serviceType": customer.serviceType,
+                                            "serviceId": customer.serviceId, "callSessionId": customer.callSessionId,
+                                            "city": customer.city, "address": customer.address,
+                                            "pincode": customer.pincode, "dues": customer.dues},
+                        "payments": payments})
     else:
         return jsonify({'message': 'customer not found'}), 404
+
 
 @app.route('/payments/create', methods=['POST'])
 def create_payment():
@@ -174,11 +183,11 @@ def create_payment():
     amount = data['amount']
     date = datetime.datetime.now()
 
-
     newPayment = Payment(customerId=customerId, amount=amount, date=date)
     db.session.add(newPayment)
     db.session.commit()
     return jsonify({'message': 'payment successful'}, ), 201
+
 
 def createJira(new_jira_ticket, address, issueType, number):
     jiraTicket = copy.deepcopy(jiraDTO.jiraSample)
@@ -209,6 +218,7 @@ def createJira(new_jira_ticket, address, issueType, number):
         # Print an error message if the request was unsuccessful
         print("Error:", response.status_code)
 
+
 @app.route('/jira-ticket/create', methods=['POST'])
 def create_jira():
     data = request.get_json()
@@ -220,7 +230,8 @@ def create_jira():
     address = data['address']
     number = data['number']
 
-    new_jira_ticket = JiraDetails(customerId=customerId, description=description, issueType=issueType, transcription=transcription, jiraId=str(uuid.uuid4()))
+    new_jira_ticket = JiraDetails(customerId=customerId, description=description, issueType=issueType,
+                                  transcription=transcription, jiraId=str(uuid.uuid4()))
     db.session.add(new_jira_ticket)
     db.session.commit()
     createJira(new_jira_ticket, address, issueType, number)
@@ -266,6 +277,7 @@ def createFreshdesk(new_jira_ticket, address, pincode, customer):
         # Print an error message if the request was unsuccessful
         print("Error:", response.status_code)
 
+
 def updateFreshdesk(new_jira_ticket):
     freshdeskTicket = copy.deepcopy(freshDeskDTO.freshdeskSample)
     freshdeskTicket['description'] = "Broadband Address: " + address
@@ -293,6 +305,20 @@ def updateFreshdesk(new_jira_ticket):
         # Print an error message if the request was unsuccessful
         print("Error:", response.status_code)
 
+
+def addAttachmentToTicket():
+    url = "https://airtel7690.freshdesk.com/api/v2/tickets/6"
+    token = 'ZlRDVll1UmQ3TXl4UlF4RUpSNTpY'
+    headers = {
+        'Authorization': 'Basic ' + token,
+        'Content-Type': 'application/json'  # Adjust content type as necessary
+    }
+    multipart_data = [
+        ('attachments[]', ('6.txt', open('/tmp/6.txt', 'rb'), 'text/plain')),
+    ]
+    response = requests.put(url, headers=headers, files=multipart_data)
+
+
 with app.app_context():
     db.create_all()
 
@@ -302,6 +328,3 @@ if __name__ == '__main__':
     # uuid_str = str(new_uuid)
     # print(uuid_str)
     app.run(debug=True, host="0.0.0.0", port=8000)
-
-
-
